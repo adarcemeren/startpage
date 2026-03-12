@@ -1,0 +1,1847 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Startpage</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --glass: rgba(255,255,255,0.12);
+      --glass-border: rgba(255,255,255,0.22);
+      --glass-hover: rgba(255,255,255,0.20);
+      --text: #fff;
+      --text-dim: rgba(255,255,255,0.65);
+      --accent: #f0c27f;
+      --shadow: 0 8px 32px rgba(0,0,0,0.25);
+      --blur: blur(18px);
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'DM Sans', sans-serif;
+      color: var(--text);
+      overflow: hidden;
+    }
+
+    /* ── BACKGROUND ── */
+    #bg {
+      position: fixed; inset: 0; z-index: 0;
+      background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
+      background-size: cover;
+      background-position: center;
+      transition: background-image 0.6s ease, background-color 0.6s ease;
+    }
+    #bg::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: rgba(0,0,0,0.35);
+    }
+
+    /* ── LAYOUT ── */
+    #app {
+      position: relative; z-index: 1;
+      height: 100vh;
+      display: grid;
+      grid-template-rows: 1fr auto;
+      grid-template-columns: 1fr 360px;
+      grid-template-areas:
+        "main  tasks"
+        "main  tasks";
+      gap: 0;
+      padding: 40px;
+    }
+
+    /* ── MAIN SECTION ── */
+    #main {
+      grid-area: main;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      padding-right: 40px;
+    }
+
+    /* Clock */
+    #clock-wrap { margin-bottom: 12px; }
+    #clock {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(72px, 10vw, 120px);
+      line-height: 1;
+      letter-spacing: -2px;
+      text-shadow: 0 4px 24px rgba(0,0,0,0.4);
+    }
+    #date {
+      font-size: 15px;
+      color: var(--text-dim);
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-top: 6px;
+    }
+
+    /* Search */
+    #search-wrap {
+      margin-top: 36px;
+      max-width: 580px;
+    }
+    #search-label {
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--text-dim);
+      margin-bottom: 10px;
+    }
+    #search-box {
+      display: flex;
+      align-items: center;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: var(--blur);
+      border-radius: 14px;
+      padding: 0 18px;
+      gap: 12px;
+      transition: background 0.2s, border-color 0.2s;
+    }
+    #search-box:focus-within {
+      background: var(--glass-hover);
+      border-color: rgba(255,255,255,0.4);
+      box-shadow: 0 0 0 3px rgba(240,194,127,0.15);
+    }
+    #engine-select {
+      background: none;
+      border: none;
+      color: var(--accent);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      outline: none;
+      padding: 0;
+    }
+    #engine-select option { background: #1a1a2e; color: #fff; }
+    #search-divider {
+      width: 1px; height: 22px;
+      background: var(--glass-border);
+      flex-shrink: 0;
+    }
+    #search-input {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 16px;
+      height: 52px;
+      caret-color: var(--accent);
+    }
+    #search-input::placeholder { color: var(--text-dim); }
+    #search-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-dim);
+      padding: 4px;
+      display: flex;
+      align-items: center;
+      border-radius: 8px;
+      transition: color 0.2s;
+    }
+    #search-btn:hover { color: var(--accent); }
+
+    /* Suggestions dropdown */
+    #suggestions {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0; right: 0;
+      background: rgba(15,15,35,0.97);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: var(--blur);
+      border-radius: 14px;
+      overflow: hidden;
+      box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+      z-index: 100;
+      display: none;
+    }
+    #suggestions.visible { display: block; animation: fadeUp 0.15s ease; }
+    .sug-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 11px 18px;
+      cursor: pointer;
+      font-size: 14px;
+      color: var(--text-dim);
+      transition: background 0.1s, color 0.1s;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+    .sug-item:last-child { border-bottom: none; }
+    .sug-item:hover, .sug-item.active {
+      background: rgba(255,255,255,0.08);
+      color: var(--text);
+    }
+    .sug-item .sug-icon { font-size: 13px; flex-shrink: 0; opacity: 0.7; }
+    .sug-item .sug-text { flex: 1; }
+    .sug-item .sug-text mark {
+      background: none;
+      color: var(--accent);
+      font-weight: 600;
+    }
+    .sug-item .sug-hint {
+      font-size: 11px;
+      color: rgba(255,255,255,0.3);
+      flex-shrink: 0;
+    }
+    #search-wrap { position: relative; }
+
+    /* Quick links */
+    #quicklinks {
+      display: flex;
+      gap: 10px;
+      margin-top: 18px;
+      flex-wrap: wrap;
+    }
+    .qlink {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: var(--blur);
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 12px;
+      padding: 6px 14px;
+      border-radius: 20px;
+      transition: all 0.2s;
+    }
+    .qlink:hover {
+      background: var(--glass-hover);
+      color: var(--text);
+      border-color: rgba(255,255,255,0.35);
+      transform: translateY(-1px);
+    }
+    .qlink-ai {
+      border-color: rgba(240,194,127,0.3);
+      color: rgba(240,194,127,0.85);
+    }
+    .qlink-ai:hover { border-color: var(--accent); color: var(--accent); }
+
+    /* ── TASKS PANEL ── */
+    #tasks-panel {
+      grid-area: tasks;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .panel {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: var(--blur);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel-title {
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .panel-title a {
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 10px;
+      letter-spacing: 0.06em;
+      transition: color 0.2s;
+    }
+    .panel-title a:hover { color: var(--accent); }
+
+    /* Tasks */
+    #tasks-panel { height: 100%; }
+    #tasks-inner {
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+    }
+    #task-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      margin-bottom: 16px;
+      scrollbar-width: thin;
+      scrollbar-color: var(--glass-border) transparent;
+    }
+    .task-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 10px 12px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 10px;
+      border: 1px solid transparent;
+      transition: all 0.2s;
+      cursor: default;
+    }
+    .task-item:hover { border-color: var(--glass-border); background: rgba(255,255,255,0.1); }
+    .task-check {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      border: 2px solid var(--glass-border);
+      flex-shrink: 0;
+      cursor: pointer;
+      margin-top: 1px;
+      transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .task-check:hover { border-color: var(--accent); }
+    .task-check.done { background: var(--accent); border-color: var(--accent); }
+    .task-check.done::after { content: '✓'; font-size: 10px; color: #1a1a2e; font-weight: 700; }
+    .task-text {
+      font-size: 14px;
+      line-height: 1.4;
+      flex: 1;
+      word-break: break-word;
+    }
+    .task-text.done { text-decoration: line-through; color: var(--text-dim); }
+    .task-del {
+      background: none; border: none; cursor: pointer;
+      color: var(--text-dim); font-size: 16px; line-height: 1;
+      opacity: 0; transition: opacity 0.2s; padding: 0 2px;
+    }
+    .task-item:hover .task-del { opacity: 1; }
+    .task-del:hover { color: #ff6b6b; }
+
+    #task-input-wrap {
+      display: flex;
+      gap: 8px;
+    }
+    #task-input {
+      flex: 1;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--glass-border);
+      border-radius: 10px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      padding: 9px 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    #task-input::placeholder { color: var(--text-dim); }
+    #task-input:focus { border-color: rgba(255,255,255,0.35); }
+    #task-add-btn {
+      background: var(--accent);
+      border: none;
+      border-radius: 10px;
+      color: #1a1a2e;
+      font-size: 20px;
+      font-weight: 700;
+      width: 38px;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: opacity 0.2s, transform 0.1s;
+    }
+    #task-add-btn:hover { opacity: 0.85; transform: scale(1.05); }
+
+    /* Tasks sync status */
+    #tasks-sync-status {
+      font-size: 10px;
+      color: var(--text-dim);
+      text-align: right;
+      margin-bottom: 6px;
+      min-height: 14px;
+      letter-spacing: 0.04em;
+    }
+    #tasks-sync-status.synced { color: #6fcf97; }
+    #tasks-sync-status.syncing { color: var(--accent); }
+    #tasks-sync-status.error { color: #ff6b6b; }
+
+    /* Google Tasks link */
+    #gtasks-link {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 12px;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.06);
+      border-radius: 10px;
+      border: 1px solid var(--glass-border);
+      margin-top: 10px;
+      transition: all 0.2s;
+    }
+    #gtasks-link:hover {
+      background: var(--glass-hover);
+      color: var(--text);
+    }
+    #gtasks-link svg { flex-shrink: 0; }
+
+    /* ── BG SETTINGS ── */
+    #bg-toggle {
+      position: fixed;
+      bottom: 28px; left: 40px;
+      z-index: 10;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: var(--blur);
+      border-radius: 50%;
+      width: 42px; height: 42px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      color: var(--text-dim);
+      transition: all 0.2s;
+      font-size: 18px;
+    }
+    #bg-toggle:hover { color: var(--accent); background: var(--glass-hover); }
+
+    #bg-panel {
+      position: fixed;
+      bottom: 80px; left: 40px;
+      z-index: 10;
+      background: rgba(15,15,30,0.92);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: var(--blur);
+      border-radius: 18px;
+      padding: 20px;
+      width: 300px;
+      box-shadow: var(--shadow);
+      display: none;
+    }
+    #bg-panel.open { display: block; animation: fadeUp 0.2s ease; }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    #bg-panel h3 {
+      font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+      color: var(--accent); margin-bottom: 16px;
+    }
+    .bg-section-label {
+      font-size: 11px; color: var(--text-dim);
+      margin: 14px 0 8px; text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .bg-presets {
+      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      margin-bottom: 4px;
+    }
+    .bg-preset {
+      width: 100%; aspect-ratio: 1;
+      border-radius: 10px;
+      cursor: pointer;
+      border: 2px solid transparent;
+      transition: border-color 0.2s, transform 0.15s;
+      overflow: hidden;
+    }
+    .bg-preset:hover { transform: scale(1.06); }
+    .bg-preset.active { border-color: var(--accent); }
+
+    .bg-url-wrap {
+      display: flex; gap: 8px;
+    }
+    #bg-url-input {
+      flex: 1;
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--glass-border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      padding: 7px 10px;
+      outline: none;
+    }
+    #bg-url-input::placeholder { color: var(--text-dim); }
+    #bg-url-apply {
+      background: var(--accent); border: none; border-radius: 8px;
+      color: #1a1a2e; font-size: 12px; font-weight: 600;
+      padding: 7px 12px; cursor: pointer; transition: opacity 0.2s;
+    }
+    #bg-url-apply:hover { opacity: 0.85; }
+
+    #bg-upload-btn {
+      width: 100%;
+      background: rgba(255,255,255,0.08);
+      border: 1px dashed var(--glass-border);
+      border-radius: 8px;
+      color: var(--text-dim);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 12px;
+      padding: 9px;
+      cursor: pointer;
+      transition: all 0.2s;
+      text-align: center;
+    }
+    #bg-upload-btn:hover { border-color: rgba(255,255,255,0.4); color: var(--text); }
+
+    /* ── TOOLBAR ── */
+    #toolbar {
+      position: fixed;
+      bottom: 28px; left: 40px;
+      z-index: 10;
+      display: flex; gap: 10px;
+    }
+    .tool-btn {
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: var(--blur);
+      border-radius: 50%;
+      width: 42px; height: 42px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer;
+      color: var(--text-dim);
+      transition: all 0.2s;
+      font-size: 18px;
+    }
+    .tool-btn:hover { color: var(--accent); background: var(--glass-hover); }
+
+    /* ── SETTINGS PANEL ── */
+    #settings-panel {
+      position: fixed;
+      bottom: 80px; left: 40px;
+      z-index: 10;
+      background: rgba(15,15,30,0.95);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: var(--blur);
+      border-radius: 18px;
+      width: 320px;
+      box-shadow: var(--shadow);
+      display: none;
+      overflow: hidden;
+    }
+    #settings-panel.open { display: flex; flex-direction: column; animation: fadeUp 0.2s ease; }
+
+    #settings-tabs {
+      display: flex;
+      border-bottom: 1px solid var(--glass-border);
+      padding: 4px 4px 0;
+      gap: 2px;
+    }
+    .stab {
+      flex: 1;
+      background: none;
+      border: none;
+      color: var(--text-dim);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 11px;
+      font-weight: 500;
+      padding: 10px 4px;
+      cursor: pointer;
+      border-radius: 10px 10px 0 0;
+      transition: all 0.15s;
+      letter-spacing: 0.03em;
+    }
+    .stab:hover { color: var(--text); }
+    .stab.active { color: var(--accent); background: rgba(240,194,127,0.08); }
+
+    .stab-content { display: none; padding: 18px 20px 20px; }
+    .stab-content.active { display: block; }
+
+    /* Engine options */
+    #engine-options { display: flex; flex-direction: column; gap: 6px; }
+    .engine-opt {
+      display: flex; align-items: center; gap: 10px;
+      padding: 9px 12px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 9px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: all 0.15s;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+    .engine-opt:hover { background: rgba(255,255,255,0.09); color: var(--text); }
+    .engine-opt input[type=radio] { accent-color: var(--accent); width: 14px; height: 14px; cursor: pointer; }
+    .engine-opt:has(input:checked) {
+      border-color: rgba(240,194,127,0.4);
+      background: rgba(240,194,127,0.08);
+      color: var(--text);
+    }
+    .engine-sep {
+      font-size: 10px; color: rgba(255,255,255,0.25);
+      text-align: center; padding: 4px 0 2px;
+      letter-spacing: 0.05em;
+    }
+
+    /* Link manager */
+    #link-list { display: flex; flex-direction: column; gap: 6px; max-height: 180px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--glass-border) transparent; }
+    .link-row {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px 10px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 9px;
+      font-size: 13px;
+      color: var(--text-dim);
+    }
+    .link-row span { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .link-row-label { font-weight: 500; color: var(--text); min-width: 60px; }
+    .link-del {
+      background: none; border: none; cursor: pointer;
+      color: rgba(255,255,255,0.3); font-size: 15px;
+      transition: color 0.15s; padding: 0 2px;
+    }
+    .link-del:hover { color: #ff6b6b; }
+    .link-add-row { display: flex; flex-direction: column; gap: 7px; }
+    .link-add-row input {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid var(--glass-border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'DM Sans', sans-serif;
+      font-size: 13px;
+      padding: 8px 12px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .link-add-row input:focus { border-color: rgba(255,255,255,0.4); }
+    .link-add-row input::placeholder { color: var(--text-dim); }
+    #link-add-btn {
+      background: var(--accent); border: none; border-radius: 8px;
+      color: #1a1a2e; font-family: 'DM Sans', sans-serif;
+      font-size: 13px; font-weight: 600;
+      padding: 9px; cursor: pointer; transition: opacity 0.2s;
+    }
+    #link-add-btn:hover { opacity: 0.85; }
+
+    /* ── WEATHER ── */
+    #weather-widget {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-top: 20px;
+      background: var(--glass);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: var(--blur);
+      border-radius: 14px;
+      padding: 12px 18px;
+      max-width: 340px;
+      animation: fadeIn 0.6s 0.2s ease both;
+    }
+    #weather-icon { font-size: 28px; line-height: 1; }
+    #weather-info { display: flex; flex-direction: column; gap: 2px; }
+    #weather-temp { font-size: 22px; font-weight: 500; letter-spacing: -0.5px; }
+    #weather-desc { font-size: 12px; color: var(--text-dim); text-transform: capitalize; }
+    #weather-city { font-size: 12px; color: var(--text-dim); margin-left: auto; text-align: right; }
+    #weather-widget.hidden { display: none; }
+
+    /* ── ANIMATIONS ── */
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(18px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    #main { animation: fadeIn 0.6s ease both; }
+    #tasks-panel { animation: fadeIn 0.6s 0.1s ease both; }
+  </style>
+</head>
+<body>
+
+<script>
+  // ── INSTANT BG RESTORE (runs before paint) ──
+  (function() {
+    try {
+      var b = JSON.parse(localStorage.getItem('sp_bg') || 'null');
+      if (!b) return;
+      var s = document.createElement('style');
+      if (b.type === 'gradient') {
+        s.textContent = '#bg { background: ' + b.value + ' !important; }';
+      } else if (b.type === 'image' && b.value) {
+        s.textContent = '#bg { background-image: url("' + b.value + '") !important; background-size: cover !important; background-position: center !important; }';
+      }
+      // 'file' type: full image loaded async from IndexedDB, no preview needed
+      if (s.textContent) document.head.appendChild(s);
+    } catch(e) {}
+  })();
+</script>
+<div id="bg"></div>
+
+<div id="app">
+  <!-- MAIN -->
+  <div id="main">
+    <div id="clock-wrap">
+      <div id="clock">00:00</div>
+      <div id="date"></div>
+    </div>
+    <div id="weather-widget">
+      <span id="weather-icon">⏳</span>
+      <div id="weather-info">
+        <span id="weather-temp">--</span>
+        <span id="weather-desc">Loading…</span>
+      </div>
+      <span id="weather-city">—</span>
+    </div>
+
+    <div id="search-wrap">
+      <div id="search-label">Search</div>
+      <div id="search-box">
+        <select id="engine-select" title="Select search engine">
+          <optgroup label="── Search Engines">
+            <option value="https://www.google.com/search?q=">Google</option>
+            <option value="https://duckduckgo.com/?q=">DuckDuckGo</option>
+            <option value="https://search.brave.com/search?q=">Brave</option>
+            <option value="https://www.bing.com/search?q=">Bing</option>
+          </optgroup>
+          <optgroup label="── AI Tools">
+            <option value="ai:claude">🤖 Claude</option>
+            <option value="ai:chatgpt">💬 ChatGPT</option>
+            <option value="ai:gemini">✨ Gemini</option>
+          </optgroup>
+        </select>
+        <div id="search-divider"></div>
+        <input id="search-input" type="text" placeholder="What are you looking for?" autocomplete="off" spellcheck="false"/>
+        <button id="search-btn" title="Search">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+        </button>
+      </div>
+      <div id="suggestions"></div>
+      <div id="quicklinks"></div>
+    </div>
+  </div>
+
+  <!-- TASKS -->
+  <div id="tasks-panel">
+    <div class="panel" style="height:100%;display:flex;flex-direction:column;">
+      <div class="panel-title">
+        <span>My Tasks</span>
+        <div style="display:flex;align-items:center;gap:8px;">
+          <button id="tasks-refresh-btn" title="Sync" style="background:none;border:none;color:var(--text-dim);cursor:pointer;padding:2px 4px;font-size:16px;line-height:1;border-radius:6px;transition:color 0.2s,transform 0.3s;">↻</button>
+          <a href="https://tasks.google.com" target="_self">Open Google Tasks ↗</a>
+        </div>
+      </div>
+      <div id="tasks-sync-status"></div>
+      <div id="task-list"></div>
+      <div id="task-input-wrap">
+        <input id="task-input" type="text" placeholder="Add new task..." autocomplete="off"/>
+        <button id="task-add-btn" title="Add">+</button>
+      </div>
+      <a id="gtasks-link" href="https://tasks.google.com" target="_self">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
+        </svg>
+        View all tasks in Google Tasks
+      </a>
+    </div>
+  </div>
+</div>
+
+<!-- BOTTOM TOOLBAR -->
+<div id="toolbar">
+  <button class="tool-btn" id="settings-toggle" title="Settings">⚙️</button>
+</div>
+
+<!-- SETTINGS PANEL -->
+<div id="settings-panel">
+  <!-- TAB BAR -->
+  <div id="settings-tabs">
+    <button class="stab active" data-tab="bg">🎨 Background</button>
+    <button class="stab" data-tab="search">🔍 Search</button>
+    <button class="stab" data-tab="links">🔗 Links</button>
+    <button class="stab" data-tab="gtasks">✅ Tasks</button>
+    <button class="stab" data-tab="weather">🌤 Weather</button>
+    <button class="stab" data-tab="lang">🌐 Language</button>
+  </div>
+
+  <!-- TAB: BACKGROUND -->
+  <div class="stab-content active" id="tab-bg">
+    <div class="bg-section-label">Presets</div>
+    <div class="bg-presets" id="bg-presets"></div>
+    <div class="bg-section-label">Image URL</div>
+    <div class="bg-url-wrap">
+      <input id="bg-url-input" type="text" placeholder="https://..."/>
+      <button id="bg-url-apply">Apply</button>
+    </div>
+    <div class="bg-section-label">Upload from Computer</div>
+    <label>
+      <input type="file" id="bg-file-input" accept="image/*" style="display:none"/>
+      <div id="bg-upload-btn">📁 Choose file…</div>
+    </label>
+  </div>
+
+  <!-- TAB: SEARCH ENGINE -->
+  <div class="stab-content" id="tab-search">
+    <div class="bg-section-label">Default Search Engine</div>
+    <div id="engine-options">
+      <label class="engine-opt"><input type="radio" name="def-engine" value="https://www.google.com/search?q="> <span>Google</span></label>
+      <label class="engine-opt"><input type="radio" name="def-engine" value="https://duckduckgo.com/?q="> <span>DuckDuckGo</span></label>
+      <label class="engine-opt"><input type="radio" name="def-engine" value="https://search.brave.com/search?q="> <span>Brave Search</span></label>
+      <label class="engine-opt"><input type="radio" name="def-engine" value="https://www.bing.com/search?q="> <span>Bing</span></label>
+      <div class="engine-sep">── AI Tools ──</div>
+      <label class="engine-opt"><input type="radio" name="def-engine" value="ai:claude"> <span>🤖 Claude</span></label>
+      <label class="engine-opt"><input type="radio" name="def-engine" value="ai:chatgpt"> <span>💬 ChatGPT</span></label>
+      <label class="engine-opt"><input type="radio" name="def-engine" value="ai:gemini"> <span>✨ Gemini</span></label>
+    </div>
+  </div>
+
+  <!-- TAB: QUICK LINKS -->
+  <div class="stab-content" id="tab-links">
+    <div class="bg-section-label">Current Links</div>
+    <div id="link-list"></div>
+    <div class="bg-section-label" style="margin-top:14px;">Add New Link</div>
+    <div class="link-add-row">
+      <input id="link-label" type="text" placeholder="Label (e.g. Reddit)" maxlength="20"/>
+      <input id="link-url" type="text" placeholder="https://..."/>
+      <button id="link-add-btn">Add</button>
+    </div>
+  </div>
+
+  <!-- TAB: GOOGLE TASKS -->
+  <div class="stab-content" id="tab-gtasks">
+    <div id="gtasks-setup" style="display:none">
+      <div class="bg-section-label">Google Tasks Connection</div>
+      <p style="font-size:12px;color:var(--text-dim);line-height:1.6;margin-bottom:12px;">
+        A Google OAuth Client ID is required for sync.<br>
+        <a href="https://console.cloud.google.com/" target="_self" style="color:var(--accent);">Google Cloud Console</a>to create one for free:
+      </p>
+      <ol style="font-size:11px;color:var(--text-dim);line-height:2;padding-left:16px;margin-bottom:14px;">
+        <li>Create a new project</li>
+        <li>APIs &amp; Services → Enable APIs → <b style="color:var(--text)">Tasks API</b></li>
+        <li>Credentials → Create → OAuth Client ID</li>
+        <li>Application type: <b style="color:var(--text)">Web application</b></li>
+        <li>Authorized JS origins: <b style="color:var(--text)">https://start.adarcemeren.com</b></li>
+        <li>Authorized redirect URIs: <b style="color:var(--text)">https://start.adarcemeren.com</b></li>
+        <li>Copy the Client ID and paste it here</li>
+      </ol>
+      <div style="display:flex;gap:8px;">
+        <input id="gtasks-client-id" type="text" placeholder="...apps.googleusercontent.com" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid var(--glass-border);border-radius:8px;color:var(--text);font-family:inherit;font-size:12px;padding:8px 10px;outline:none;"/>
+        <button id="gtasks-save-id" style="background:var(--accent);border:none;border-radius:8px;color:#1a1a2e;font-family:inherit;font-size:12px;font-weight:600;padding:8px 12px;cursor:pointer;">Kaydet</button>
+      </div>
+    </div>
+    <div id="gtasks-auth" style="display:none;text-align:center;padding:10px 0;">
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:12px;">Connect with Google Tasks</div>
+      <button id="gtasks-signin-btn" style="background:var(--accent);border:none;border-radius:10px;color:#1a1a2e;font-family:inherit;font-size:13px;font-weight:600;padding:10px 20px;cursor:pointer;width:100%;">🔗 Connect with Google</button>
+    </div>
+    <div id="gtasks-connected" style="display:none;">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <span style="font-size:12px;color:#6fcf97;">● Connected</span>
+        <button id="gtasks-signout-btn" style="background:rgba(255,100,100,0.15);border:1px solid rgba(255,100,100,0.3);border-radius:8px;color:#ff6b6b;font-family:inherit;font-size:11px;padding:5px 10px;cursor:pointer;">Disconnect</button>
+      </div>
+      <div style="font-size:12px;color:var(--text-dim);margin-bottom:8px;">Task List</div>
+      <select id="gtasks-list-select" style="width:100%;background:rgba(255,255,255,0.08);border:1px solid var(--glass-border);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;padding:8px 10px;outline:none;cursor:pointer;"></select>
+      <button id="gtasks-sync-now" style="margin-top:10px;width:100%;background:rgba(255,255,255,0.08);border:1px solid var(--glass-border);border-radius:8px;color:var(--text-dim);font-family:inherit;font-size:12px;padding:8px;cursor:pointer;transition:all 0.2s;">↻ Sync Now</button>
+    </div>
+  </div>
+  <!-- TAB: LANGUAGE -->
+  <div class="stab-content" id="tab-lang">
+    <div class="bg-section-label">Interface Language</div>
+    <div style="display:flex;flex-direction:column;gap:8px;margin-top:4px;">
+      <label class="engine-opt" id="lang-opt-tr"><input type="radio" name="sp-lang" value="tr"> <span>🇹🇷 Turkish</span></label>
+      <label class="engine-opt" id="lang-opt-en"><input type="radio" name="sp-lang" value="en"> <span>🇬🇧 English</span></label>
+    </div>
+  </div>
+
+  <!-- TAB: WEATHER -->
+  <div class="stab-content" id="tab-weather">
+    <div class="bg-section-label">Weather Location</div>
+    <p style="font-size:12px;color:var(--text-dim);line-height:1.6;margin-bottom:12px;">
+      Powered by Open-Meteo (free, no API key required).<br>Enter a city name or use auto-location.
+    </p>
+    <div style="display:flex;gap:8px;margin-bottom:10px;">
+      <input id="weather-city-input" type="text" placeholder="London, New York…" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid var(--glass-border);border-radius:8px;color:var(--text);font-family:inherit;font-size:13px;padding:8px 12px;outline:none;"/>
+      <button id="weather-search-btn" style="background:var(--accent);border:none;border-radius:8px;color:#1a1a2e;font-family:inherit;font-size:13px;font-weight:600;padding:8px 14px;cursor:pointer;">Search</button>
+    </div>
+    <div id="weather-city-results" style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px;"></div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-dim);cursor:pointer;">
+      <input type="checkbox" id="weather-auto-loc" style="accent-color:var(--accent);width:14px;height:14px;"/>
+      Use auto-location
+    </label>
+    <div style="margin-top:12px;font-size:12px;color:var(--text-dim);" id="weather-current-loc"></div>
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-dim);cursor:pointer;margin-top:12px;">
+      <input type="checkbox" id="weather-unit-f" style="accent-color:var(--accent);width:14px;height:14px;"/>
+      Use Fahrenheit
+    </label>
+    <label style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text-dim);cursor:pointer;margin-top:8px;">
+      <input type="checkbox" id="weather-hide" style="accent-color:var(--accent);width:14px;height:14px;"/>
+      Hide weather widget
+    </label>
+  </div>
+</div>
+
+<script>
+  // ── I18N ──
+  const LANGS = {
+    tr: {
+      search_label: 'Search',
+      search_placeholder: 'What are you looking for?',
+      ai_label: "Ask AI",
+      ai_placeholder_suffix: ': ask\u2026',
+      tasks_title: 'My Tasks',
+      tasks_open: 'Open Google Tasks \u2197',
+      tasks_footer: 'View all tasks in Google Tasks',
+      task_placeholder: 'Add new task...',
+      task_empty: 'No tasks yet \uD83C\uDF89',
+      sync_syncing: '\u21bb Syncing\u2026',
+      sync_done: '\u2713 Synced',
+      sync_error: 'Sync error',
+      date_days: ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+      date_months: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+      ai_suffixes: [' what is it?',' how does it work?',' give a summary',' pros and cons',' give examples'],
+      search_suffixes: [' definition',' how to',' meaning',' features',' download',' price'],
+      weather_my_loc: 'Your location',
+      weather_loading: 'Loading\u2026',
+      sug_history: 'history',
+      settings_bg: '\uD83C\uDFA8 Background',
+      settings_search: '\uD83D\uDD0D Search',
+      settings_links: '\uD83D\uDD17 Links',
+      settings_tasks: '\u2705 Tasks',
+      settings_weather: '\uD83C\uDF24 Weather',
+      settings_lang: '\uD83C\uDF10 Language',
+    },
+    en: {
+      search_label: 'Search',
+      search_placeholder: 'What are you looking for?',
+      ai_label: 'Ask AI',
+      ai_placeholder_suffix: ': ask\u2026',
+      tasks_title: 'My Tasks',
+      tasks_open: 'Open Google Tasks \u2197',
+      tasks_footer: 'View all tasks in Google Tasks',
+      task_placeholder: 'Add new task...',
+      task_empty: 'No tasks yet \uD83C\uDF89',
+      sync_syncing: '\u21bb Syncing\u2026',
+      sync_done: '\u2713 Synced',
+      sync_error: 'Sync error',
+      date_days: ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+      date_months: ['January','February','March','April','May','June','July','August','September','October','November','December'],
+      ai_suffixes: [' what is it?',' how does it work?',' give a summary',' pros and cons',' give examples'],
+      search_suffixes: [' definition',' how to',' meaning',' features',' download',' price'],
+      weather_my_loc: 'Your location',
+      weather_loading: 'Loading\u2026',
+      sug_history: 'history',
+      settings_bg: '\uD83C\uDFA8 Background',
+      settings_search: '\uD83D\uDD0D Search',
+      settings_links: '\uD83D\uDD17 Links',
+      settings_tasks: '\u2705 Tasks',
+      settings_weather: '\uD83C\uDF24 Weather',
+      settings_lang: '\uD83C\uDF10 Language',
+    }
+  };
+
+  let currentLang = localStorage.getItem('sp_lang') || 'en';
+  let L = LANGS[currentLang];
+
+  function applyLang(code) {
+    currentLang = code;
+    L = LANGS[code];
+    localStorage.setItem('sp_lang', code);
+
+    // Radios
+    document.querySelectorAll('input[name="sp-lang"]').forEach(r => r.checked = r.value === code);
+
+    // Search
+    searchLabel.textContent = L.search_label;
+    const isAi = isAiMode();
+    if (!isAi) searchInput.placeholder = L.search_placeholder;
+
+    // Tasks panel
+    document.querySelector('.panel-title span').textContent = L.tasks_title;
+    document.querySelector('.panel-title a').textContent = L.tasks_open;
+    taskInput.placeholder = L.task_placeholder;
+    const footer = document.getElementById('gtasks-link');
+    if (footer) footer.childNodes[footer.childNodes.length - 1].textContent = ' ' + L.tasks_footer;
+
+    // Settings tab labels
+    const tabMap = {bg:'settings_bg',search:'settings_search',links:'settings_links',gtasks:'settings_tasks',weather:'settings_weather',lang:'settings_lang'};
+    document.querySelectorAll('.stab').forEach(btn => {
+      const key = tabMap[btn.dataset.tab];
+      if (key) btn.textContent = L[key];
+    });
+
+    // Re-render date with new locale
+    updateClock();
+    renderTasks();
+  }
+
+  document.querySelectorAll('input[name="sp-lang"]').forEach(radio => {
+    radio.addEventListener('change', () => applyLang(radio.value));
+  });
+
+  // ── CLOCK ──
+  function updateClock() {
+    const now = new Date();
+    const h = String(now.getHours()).padStart(2, '0');
+    const m = String(now.getMinutes()).padStart(2, '0');
+    document.getElementById('clock').textContent = h + ':' + m;
+    const days = (typeof L !== 'undefined' ? L : LANGS.tr).date_days;
+    const months = (typeof L !== 'undefined' ? L : LANGS.tr).date_months;
+    document.getElementById('date').textContent =
+      days[now.getDay()] + ', ' + now.getDate() + ' ' + months[now.getMonth()] + ' ' + now.getFullYear();
+  }
+  updateClock();
+  setInterval(updateClock, 10000);
+
+  // ── SEARCH ──
+  const searchInput = document.getElementById('search-input');
+  const engineSelect = document.getElementById('engine-select');
+  const searchLabel = document.getElementById('search-label');
+  const sugBox = document.getElementById('suggestions');
+
+  const aiUrls = {
+    'ai:claude':  'https://claude.ai/new?q=',
+    'ai:chatgpt': 'https://chatgpt.com/?q=',
+    'ai:gemini':  'https://gemini.google.com/app?q='
+  };
+  const aiNames = {'ai:claude':'Claude','ai:chatgpt':'ChatGPT','ai:gemini':'Gemini'};
+
+  // ── SEARCH HISTORY ──
+  function getHistory() {
+    try { return JSON.parse(localStorage.getItem('sp_history') || '[]'); } catch(e) { return []; }
+  }
+  function addHistory(q) {
+    let h = getHistory().filter(x => x !== q);
+    h.unshift(q);
+    localStorage.setItem('sp_history', JSON.stringify(h.slice(0, 50)));
+  }
+
+  engineSelect.addEventListener('change', () => {
+    const v = engineSelect.value;
+    if (v.startsWith('ai:')) {
+      searchInput.placeholder = aiNames[v] + '\u2019a sor\u2026';
+      searchLabel.textContent = 'AI\u2019ya Sor';
+    } else {
+      searchInput.placeholder = 'What are you looking for?';
+      searchLabel.textContent = 'Search';
+    }
+    hideSuggestions();
+  });
+
+  document.getElementById('search-btn').addEventListener('click', doSearch);
+
+  // ── SUGGESTIONS ──
+  let sugActive = -1;
+  let sugItems = [];
+  let debounceTimer = null;
+  const isAiMode = () => engineSelect.value.startsWith('ai:');
+
+  function fetchSuggestions(q) {
+    if (!q) { hideSuggestions(); return; }
+    if (isAiMode()) { showAiSuggestions(q); return; }
+
+    // Merge: history first, then Google Suggest via JSONP
+    const hist = getHistory()
+      .filter(x => x.toLowerCase().startsWith(q.toLowerCase()) && x !== q)
+      .slice(0, 3)
+      .map(s => ({ text: s, type: 'history' }));
+
+    const cb = 'sg_' + Date.now();
+    const script = document.createElement('script');
+    window[cb] = function(data) {
+      script.remove();
+      delete window[cb];
+      const remote = (data[1] || [])
+        .filter(s => s !== q)
+        .slice(0, 8 - hist.length)
+        .map(s => ({ text: s, type: 'search' }));
+      const merged = [...hist, ...remote].slice(0, 8);
+      renderSuggestions(merged, q);
+    };
+    script.src = 'https://suggestqueries.google.com/complete/search?client=firefox&hl=tr&q='
+      + encodeURIComponent(q) + '&callback=' + cb;
+    script.onerror = () => {
+      script.remove();
+      delete window[cb];
+      // Fallback: show only history if JSONP blocked
+      if (hist.length) renderSuggestions(hist, q);
+      else hideSuggestions();
+    };
+    document.head.appendChild(script);
+    // Timeout safety
+    setTimeout(() => { if (window[cb]) { script.remove(); delete window[cb]; } }, 3000);
+  }
+
+  function showAiSuggestions(q) {
+    const templates = [
+      q,
+      q + ' nedir?',
+      q + ' nas\u0131l \u00e7al\u0131\u015f\u0131r?',
+      q + ' hakk\u0131nda \u00f6zet ver',
+      q + ' avantaj ve dezavantajlar\u0131',
+      q + ' i\u00e7in \u00f6rnekler ver',
+    ];
+    renderSuggestions(templates.map(s => ({ text: s, type: 'ai' })), q);
+  }
+
+  function highlight(text, q) {
+    const idx = text.toLowerCase().indexOf(q.toLowerCase());
+    if (idx === -1) return escHtml(text);
+    return escHtml(text.slice(0, idx)) +
+      '<mark>' + escHtml(text.slice(idx, idx + q.length)) + '</mark>' +
+      escHtml(text.slice(idx + q.length));
+  }
+
+  function renderSuggestions(items, q) {
+    if (!items.length) { hideSuggestions(); return; }
+    sugItems = items;
+    sugActive = -1;
+    const icons = { ai: '\u2728', history: '\u23f1', search: '\uD83D\uDD0D' };
+    const hints = { ai: aiNames[engineSelect.value], history: 'ge\u00e7mi\u015f', search: '' };
+    sugBox.innerHTML = items.map((item, i) =>
+      '<div class="sug-item" data-i="' + i + '">' +
+        '<span class="sug-icon">' + icons[item.type] + '</span>' +
+        '<span class="sug-text">' + highlight(item.text, q) + '</span>' +
+        (hints[item.type] ? '<span class="sug-hint">' + hints[item.type] + '</span>' : '') +
+      '</div>'
+    ).join('');
+    sugBox.querySelectorAll('.sug-item').forEach(el => {
+      el.addEventListener('mousedown', e => {
+        e.preventDefault();
+        searchInput.value = sugItems[+el.dataset.i].text;
+        doSearch();
+      });
+    });
+    sugBox.classList.add('visible');
+  }
+
+  function hideSuggestions() {
+    sugBox.classList.remove('visible');
+    sugActive = -1;
+  }
+
+  searchInput.addEventListener('input', () => {
+    clearTimeout(debounceTimer);
+    const q = searchInput.value.trim();
+    if (!q) { hideSuggestions(); return; }
+    debounceTimer = setTimeout(() => fetchSuggestions(q), isAiMode() ? 0 : 200);
+  });
+
+  searchInput.addEventListener('keydown', e => {
+    const items = sugBox.querySelectorAll('.sug-item');
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      sugActive = Math.min(sugActive + 1, items.length - 1);
+      items.forEach((el, i) => el.classList.toggle('active', i === sugActive));
+      if (sugActive >= 0) searchInput.value = sugItems[sugActive].text;
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      sugActive = Math.max(sugActive - 1, -1);
+      items.forEach((el, i) => el.classList.toggle('active', i === sugActive));
+      if (sugActive >= 0) searchInput.value = sugItems[sugActive].text;
+    } else if (e.key === 'Escape') {
+      hideSuggestions();
+    } else if (e.key === 'Enter') {
+      doSearch();
+    }
+  });
+
+  searchInput.addEventListener('blur', () => setTimeout(hideSuggestions, 150));
+  searchInput.addEventListener('focus', () => {
+    const q = searchInput.value.trim();
+    if (q) fetchSuggestions(q);
+  });
+
+  function doSearch() {
+    const q = searchInput.value.trim();
+    if (!q) return;
+    const v = engineSelect.value;
+    addHistory(q);
+    hideSuggestions();
+    if (v.startsWith('ai:')) {
+      location.href = aiUrls[v] + encodeURIComponent(q);
+    } else {
+      location.href = v + encodeURIComponent(q);
+    }
+    searchInput.value = '';
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  // ── TASKS (Google Tasks + local fallback) ──
+  const taskList = document.getElementById('task-list');
+  const taskInput = document.getElementById('task-input');
+  const syncStatus = document.getElementById('tasks-sync-status');
+
+  // Google Tasks state
+  let gAccessToken = null;
+  let gTaskListId = localStorage.getItem('sp_gtasks_list') || '@default';
+  let gClientId = localStorage.getItem('sp_gtasks_client_id') || '';
+  let tasks = [];  // {id, text, done, gid}
+
+  function setSyncStatus(msg, cls) {
+    syncStatus.textContent = msg;
+    syncStatus.className = cls ? 'synced' === cls ? 'synced' : cls : '';
+  }
+
+  // ── LOCAL FALLBACK ──
+  function loadLocalTasks() {
+    try { return JSON.parse(localStorage.getItem('sp_tasks') || '[]'); } catch(e) { return []; }
+  }
+  function saveLocalTasks() {
+    localStorage.setItem('sp_tasks', JSON.stringify(tasks));
+  }
+
+  // ── RENDER ──
+  function renderTasks() {
+    taskList.innerHTML = '';
+    const visible = tasks.filter(t => !t.deleted);
+    if (!visible.length) {
+      taskList.innerHTML = '<div style="color:var(--text-dim);font-size:13px;text-align:center;padding:20px 0;">No tasks yet \uD83C\uDF89</div>';
+      return;
+    }
+    visible.forEach((t, idx) => {
+      const realIdx = tasks.indexOf(t);
+      const item = document.createElement('div');
+      item.className = 'task-item';
+      item.innerHTML =
+        '<div class="task-check ' + (t.done ? 'done' : '') + '" data-i="' + realIdx + '"></div>' +
+        '<div class="task-text ' + (t.done ? 'done' : '') + '">' + escHtml(t.text) + '</div>' +
+        '<button class="task-del" data-i="' + realIdx + '" title="Delete">\u00d7</button>';
+      item.querySelector('.task-check').addEventListener('click', () => toggleTask(realIdx));
+      item.querySelector('.task-del').addEventListener('click', () => deleteTask(realIdx));
+      taskList.appendChild(item);
+    });
+  }
+
+  // ── CRUD (local + Google) ──
+  async function addTask() {
+    const text = taskInput.value.trim();
+    if (!text) return;
+    const t = { id: Date.now() + '', text, done: false, gid: null };
+    tasks.unshift(t);
+    saveLocalTasks();
+    renderTasks();
+    taskInput.value = '';
+    if (gAccessToken) {
+      try {
+        const res = await gFetch('POST', '/tasks/v1/lists/' + gTaskListId + '/tasks', { title: text, status: 'needsAction' });
+        t.gid = res.id;
+        saveLocalTasks();
+      } catch(e) { setSyncStatus('Addnemedi', 'error'); }
+    }
+  }
+
+  async function toggleTask(i) {
+    tasks[i].done = !tasks[i].done;
+    saveLocalTasks(); renderTasks();
+    if (gAccessToken && tasks[i].gid) {
+      try {
+        await gFetch('PATCH', '/tasks/v1/lists/' + gTaskListId + '/tasks/' + tasks[i].gid,
+          { status: tasks[i].done ? 'completed' : 'needsAction' });
+      } catch(e) {}
+    }
+  }
+
+  async function deleteTask(i) {
+    const t = tasks[i];
+    tasks.splice(i, 1);
+    saveLocalTasks(); renderTasks();
+    if (gAccessToken && t.gid) {
+      try { await gFetch('DELETE', '/tasks/v1/lists/' + gTaskListId + '/tasks/' + t.gid); } catch(e) {}
+    }
+  }
+
+  document.getElementById('task-add-btn').addEventListener('click', addTask);
+  taskInput.addEventListener('keydown', e => { if (e.key === 'Enter') addTask(); });
+
+  // ── GOOGLE TASKS API ──
+  async function gFetch(method, path, body) {
+    const opts = {
+      method,
+      headers: { Authorization: 'Bearer ' + gAccessToken, 'Content-Type': 'application/json' }
+    };
+    if (body && method !== 'DELETE') opts.body = JSON.stringify(body);
+    const r = await fetch('https://tasks.googleapis.com' + path, opts);
+    if (r.status === 401) { gAccessToken = null; updateGTasksUI(); throw new Error('Unauthorized'); }
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    if (method === 'DELETE') return;
+    return r.json();
+  }
+
+  async function syncFromGoogle() {
+    if (!gAccessToken) return;
+    setSyncStatus('\u21bb Senkronize ediliyor\u2026', 'syncing');
+    try {
+      const data = await gFetch('GET', '/tasks/v1/lists/' + gTaskListId + '/tasks?showCompleted=true&maxResults=100');
+      const items = data.items || [];
+      // Merge: Google is source of truth
+      tasks = items.map(item => ({
+        id: item.id,
+        text: item.title || '(empty)',
+        done: item.status === 'completed',
+        gid: item.id
+      }));
+      saveLocalTasks();
+      renderTasks();
+      setSyncStatus('\u2713 Senkronize ' + new Date().toLocaleTimeString('tr-TR', {hour:'2-digit',minute:'2-digit'}), 'synced');
+    } catch(e) {
+      setSyncStatus('Sync error', 'error');
+    }
+  }
+
+  async function loadTaskLists() {
+    try {
+      const data = await gFetch('GET', '/tasks/v1/users/@me/lists');
+      const sel = document.getElementById('gtasks-list-select');
+      sel.innerHTML = '';
+      (data.items || []).forEach(l => {
+        const opt = document.createElement('option');
+        opt.value = l.id; opt.textContent = l.title;
+        if (l.id === gTaskListId) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      sel.addEventListener('change', () => {
+        gTaskListId = sel.value;
+        localStorage.setItem('sp_gtasks_list', gTaskListId);
+        syncFromGoogle();
+      });
+    } catch(e) {}
+  }
+
+  // ── OAUTH ──
+  function startOAuth() {
+    if (!gClientId) return;
+    const params = new URLSearchParams({
+      client_id: gClientId,
+      redirect_uri: location.href.split('?')[0].split('#')[0],
+      response_type: 'token',
+      scope: 'https://www.googleapis.com/auth/tasks',
+      include_granted_scopes: 'true',
+    });
+    location.href = 'https://accounts.google.com/o/oauth2/v2/auth?' + params;
+  }
+
+  function checkOAuthCallback() {
+    const hash = location.hash;
+    if (!hash.includes('access_token')) return false;
+    const params = new URLSearchParams(hash.slice(1));
+    const token = params.get('access_token');
+    const expiresIn = parseInt(params.get('expires_in') || '3600');
+    if (token) {
+      gAccessToken = token;
+      const expiry = Date.now() + expiresIn * 1000;
+      localStorage.setItem('sp_gtoken', JSON.stringify({ token, expiry }));
+      history.replaceState(null, '', location.pathname);
+      return true;
+    }
+    return false;
+  }
+
+  function loadSavedToken() {
+    try {
+      const saved = JSON.parse(localStorage.getItem('sp_gtoken') || 'null');
+      if (saved && saved.expiry > Date.now() + 60000) {
+        gAccessToken = saved.token;
+        return true;
+      }
+    } catch(e) {}
+    return false;
+  }
+
+  // ── UI STATE ──
+  function updateGTasksUI() {
+    const setup = document.getElementById('gtasks-setup');
+    const auth = document.getElementById('gtasks-auth');
+    const connected = document.getElementById('gtasks-connected');
+    if (!gClientId) {
+      setup.style.display = 'block';
+      auth.style.display = 'none';
+      connected.style.display = 'none';
+    } else if (!gAccessToken) {
+      setup.style.display = 'none';
+      auth.style.display = 'block';
+      connected.style.display = 'none';
+    } else {
+      setup.style.display = 'none';
+      auth.style.display = 'none';
+      connected.style.display = 'block';
+      loadTaskLists();
+      syncFromGoogle();
+      setInterval(syncFromGoogle, 60000);
+    }
+  }
+
+  // ── INIT ──
+  document.getElementById('gtasks-save-id').addEventListener('click', () => {
+    const val = document.getElementById('gtasks-client-id').value.trim();
+    if (!val) return;
+    gClientId = val;
+    localStorage.setItem('sp_gtasks_client_id', val);
+    updateGTasksUI();
+  });
+
+  document.getElementById('gtasks-signin-btn').addEventListener('click', startOAuth);
+
+  document.getElementById('gtasks-signout-btn').addEventListener('click', () => {
+    gAccessToken = null;
+    localStorage.removeItem('sp_gtoken');
+    tasks = loadLocalTasks();
+    renderTasks();
+    setSyncStatus('', '');
+    updateGTasksUI();
+  });
+
+  document.getElementById('gtasks-sync-now').addEventListener('click', syncFromGoogle);
+
+  document.getElementById('tasks-refresh-btn').addEventListener('click', async () => {
+    const btn = document.getElementById('tasks-refresh-btn');
+    btn.style.transform = 'rotate(360deg)';
+    btn.style.color = 'var(--accent)';
+    await syncFromGoogle();
+    setTimeout(() => {
+      btn.style.transform = '';
+      btn.style.color = '';
+    }, 600);
+  });
+
+  // ── BOOT ──
+  if (checkOAuthCallback() || loadSavedToken()) {
+    // token ready - gtasks UI will sync
+  } else {
+    tasks = loadLocalTasks();
+    renderTasks();
+  }
+  updateGTasksUI();
+  if (!gAccessToken) renderTasks();
+
+  // ── SETTINGS PANEL ──
+  const settingsPanel = document.getElementById('settings-panel');
+  document.getElementById('settings-toggle').addEventListener('click', e => {
+    e.stopPropagation();
+    settingsPanel.classList.toggle('open');
+  });
+  document.addEventListener('click', e => {
+    if (!settingsPanel.contains(e.target) && e.target.id !== 'settings-toggle') {
+      settingsPanel.classList.remove('open');
+    }
+  });
+
+  // Tabs
+  document.querySelectorAll('.stab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.stab').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.stab-content').forEach(c => c.classList.remove('active'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+    });
+  });
+
+  // ── DEFAULT ENGINE ──
+  const engines = {
+    'https://www.google.com/search?q=': 'Google',
+    'https://duckduckgo.com/?q=': 'DuckDuckGo',
+    'https://search.brave.com/search?q=': 'Brave',
+    'https://www.bing.com/search?q=': 'Bing',
+    'ai:claude': 'Claude',
+    'ai:chatgpt': 'ChatGPT',
+    'ai:gemini': 'Gemini'
+  };
+
+  function applyDefaultEngine(val) {
+    engineSelect.value = val;
+    engineSelect.dispatchEvent(new Event('change'));
+    localStorage.setItem('sp_engine', val);
+    document.querySelectorAll('input[name="def-engine"]').forEach(r => {
+      r.checked = r.value === val;
+    });
+  }
+
+  const savedEngine = localStorage.getItem('sp_engine') || 'https://www.google.com/search?q=';
+  applyDefaultEngine(savedEngine);
+
+  document.querySelectorAll('input[name="def-engine"]').forEach(radio => {
+    radio.addEventListener('change', () => applyDefaultEngine(radio.value));
+  });
+
+  // ── QUICK LINKS ──
+  const DEFAULT_LINKS = [
+    { label: 'Gmail', url: 'https://mail.google.com', ai: false },
+    { label: 'Takvim', url: 'https://calendar.google.com', ai: false },
+    { label: 'Drive', url: 'https://drive.google.com', ai: false },
+    { label: 'YouTube', url: 'https://youtube.com', ai: false },
+    { label: 'GitHub', url: 'https://github.com', ai: false },
+    { label: 'Claude', url: 'https://claude.ai', ai: true },
+    { label: 'ChatGPT', url: 'https://chatgpt.com', ai: true },
+    { label: 'Gemini', url: 'https://gemini.google.com', ai: true },
+  ];
+
+  function getLinks() {
+    try {
+      const saved = localStorage.getItem('sp_links');
+      return saved ? JSON.parse(saved) : DEFAULT_LINKS;
+    } catch(e) { return DEFAULT_LINKS; }
+  }
+  function saveLinks(links) { localStorage.setItem('sp_links', JSON.stringify(links)); }
+
+  function renderQuickLinks() {
+    const links = getLinks();
+    const ql = document.getElementById('quicklinks');
+    ql.innerHTML = links.map((l, i) =>
+      `<a class="qlink${l.ai ? ' qlink-ai' : ''}" href="${escHtml(l.url)}" target="_self">${escHtml(l.label)}</a>`
+    ).join('');
+    renderLinkManager();
+  }
+
+  function renderLinkManager() {
+    const links = getLinks();
+    const ll = document.getElementById('link-list');
+    if (!links.length) {
+      ll.innerHTML = '<div style="color:var(--text-dim);font-size:12px;text-align:center;padding:10px 0;">No links yet</div>';
+      return;
+    }
+    ll.innerHTML = links.map((l, i) =>
+      `<div class="link-row">
+        <span class="link-row-label">${escHtml(l.label)}</span>
+        <span>${escHtml(l.url)}</span>
+        <button class="link-del" data-i="${i}" title="Delete">×</button>
+      </div>`
+    ).join('');
+    ll.querySelectorAll('.link-del').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const links = getLinks();
+        links.splice(+btn.dataset.i, 1);
+        saveLinks(links);
+        renderQuickLinks();
+      });
+    });
+  }
+
+  document.getElementById('link-add-btn').addEventListener('click', () => {
+    const label = document.getElementById('link-label').value.trim();
+    let url = document.getElementById('link-url').value.trim();
+    if (!label || !url) return;
+    if (!/^https?:\/\//i.test(url)) url = 'https://' + url;
+    const links = getLinks();
+    links.push({ label, url, ai: false });
+    saveLinks(links);
+    renderQuickLinks();
+    document.getElementById('link-label').value = '';
+    document.getElementById('link-url').value = '';
+  });
+  document.getElementById('link-url').addEventListener('keydown', e => {
+    if (e.key === 'Enter') document.getElementById('link-add-btn').click();
+  });
+
+  renderQuickLinks();
+
+  // ── BACKGROUND (IndexedDB for image persistence) ──
+  const bg = document.getElementById('bg');
+  const presetsData = [
+    { label: 'Derin Gece', style: 'linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%)' },
+    { label: 'Orman', style: 'linear-gradient(135deg,#0f2027,#203a43,#2c5364)' },
+    { label: '\u015eafak', style: 'linear-gradient(135deg,#232526,#414345)' },
+    { label: 'Mor', style: 'linear-gradient(135deg,#200122,#6f0000)' },
+    { label: 'Deniz', style: 'linear-gradient(135deg,#005c97,#363795)' },
+    { label: 'Ak\u015fam', style: 'linear-gradient(135deg,#0f0c29,#302b63,#24243e)' },
+    { label: 'G\u00fcn Bat\u0131m\u0131', style: 'linear-gradient(135deg,#f7971e,#ffd200,#f7971e)' },
+    { label: 'Nane', style: 'linear-gradient(135deg,#0f4c3a,#1a7a5e,#0d3529)' },
+  ];
+
+  const presetsEl = document.getElementById('bg-presets');
+
+  // IndexedDB for image storage
+  let bgDB = null;
+  const openBgDB = () => new Promise((res, rej) => {
+    const req = indexedDB.open('sp_bg_db', 1);
+    req.onupgradeneeded = e => e.target.result.createObjectStore('images');
+    req.onsuccess = e => { bgDB = e.target.result; res(bgDB); };
+    req.onerror = () => rej();
+  });
+
+  async function saveBgImage(dataUrl) {
+    const db = bgDB || await openBgDB();
+    // Save full image to IndexedDB
+    await new Promise((res, rej) => {
+      const tx = db.transaction('images', 'readwrite');
+      tx.objectStore('images').put(dataUrl, 'bg');
+      tx.oncomplete = res; tx.onerror = rej;
+    });
+  }
+
+  async function loadBgImage() {
+    const db = bgDB || await openBgDB();
+    return new Promise((res) => {
+      const tx = db.transaction('images', 'readonly');
+      const req = tx.objectStore('images').get('bg');
+      req.onsuccess = () => res(req.result || null);
+      req.onerror = () => res(null);
+    });
+  }
+
+  async function clearBgImage() {
+    const db = bgDB || await openBgDB();
+    return new Promise((res) => {
+      const tx = db.transaction('images', 'readwrite');
+      tx.objectStore('images').delete('bg');
+      tx.oncomplete = res; tx.onerror = res;
+    });
+  }
+
+  presetsData.forEach((p, i) => {
+    const el = document.createElement('div');
+    el.className = 'bg-preset';
+    el.style.background = p.style;
+    el.title = p.label;
+    el.addEventListener('click', () => setGradientBg(p.style, i));
+    presetsEl.appendChild(el);
+  });
+
+  function setGradientBg(style, idx) {
+    bg.style.backgroundImage = 'none';
+    bg.style.background = style;
+    bg.style.backgroundSize = 'cover';
+    presetsEl.querySelectorAll('.bg-preset').forEach((el, i) => el.classList.toggle('active', i === idx));
+    localStorage.setItem('sp_bg', JSON.stringify({ type: 'gradient', value: style, idx }));
+    clearBgImage();
+  }
+
+  function setImageBg(dataOrUrl) {
+    bg.style.background = '#111';
+    bg.style.backgroundImage = "url('" + dataOrUrl + "')";
+    bg.style.backgroundSize = 'cover';
+    bg.style.backgroundPosition = 'center';
+    presetsEl.querySelectorAll('.bg-preset').forEach(el => el.classList.remove('active'));
+  }
+
+  document.getElementById('bg-url-apply').addEventListener('click', async () => {
+    let url = document.getElementById('bg-url-input').value.trim();
+    if (!url) return;
+
+    // Relative path or absolute path: try fetching (works when served via localhost)
+    const isLocalPath = url.startsWith('/') || url.startsWith('./') || url.startsWith('../') ||
+                        url.startsWith('file://') || /^[A-Za-z]:[\\\/]/.test(url) ||
+                        (!url.startsWith('http://') && !url.startsWith('https://'));
+
+    if (isLocalPath) {
+      // Try to fetch it (works if file is in same server directory or accessible)
+      const fetchUrl = url.startsWith('file://') ? url : url;
+      try {
+        const res = await fetch(fetchUrl);
+        if (!res.ok) throw new Error('not ok');
+        const blob = await res.blob();
+        const reader = new FileReader();
+        reader.onload = ev => {
+          const dataUrl = ev.target.result;
+          setImageBg(dataUrl);
+          // Save dataUrl to localStorage if small enough, else IndexedDB
+          try {
+            localStorage.setItem('sp_bg', JSON.stringify({ type: 'image', value: dataUrl }));
+          } catch(e) {
+            // Too large for localStorage, use IndexedDB
+            saveBgImage(dataUrl);
+            localStorage.setItem('sp_bg', JSON.stringify({ type: 'file' }));
+          }
+        };
+        reader.readAsDataURL(blob);
+      } catch(e) {
+        // Can't fetch: use directly as src (works for relative paths on localhost)
+        setImageBg(url);
+        localStorage.setItem('sp_bg', JSON.stringify({ type: 'localpath', value: url }));
+      }
+      return;
+    }
+
+    // Remote URL
+    setImageBg(url);
+    clearBgImage();
+    localStorage.setItem('sp_bg', JSON.stringify({ type: 'image', value: url }));
+  });
+
+  document.getElementById('bg-file-input').addEventListener('change', e => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = async ev => {
+      const dataUrl = ev.target.result;
+      setImageBg(dataUrl);
+      await openBgDB();
+      await saveBgImage(dataUrl);
+      // Also cache small preview in localStorage for instant restore
+      try {
+        localStorage.setItem('sp_bg', JSON.stringify({ type: 'file' }));
+      } catch(e) {}
+    };
+    reader.readAsDataURL(file);
+  });
+
+  // Restore background (sync from localStorage, async fallback for IndexedDB)
+  (async () => {
+    await openBgDB();
+    const saved = localStorage.getItem('sp_bg');
+    if (saved) {
+      try {
+        const b = JSON.parse(saved);
+        if (b.type === 'gradient') { setGradientBg(b.value, b.idx ?? -1); }
+        else if (b.type === 'image') { setImageBg(b.value); } // dataUrl or remote URL - instant
+        else if (b.type === 'localpath') { setImageBg(b.value); } // relative path - instant
+        else if (b.type === 'file') {
+          const img = await loadBgImage();
+          if (img) setImageBg(img);
+        }
+      } catch(e) {}
+    } else {
+      setGradientBg(presetsData[0].style, 0);
+    }
+  })();
+
+  // ── WEATHER ──
+  const WMO_CODES = {
+    0:'Clear',1:'Mostly Clear',2:'Partly Cloudy',3:'Overcast',
+    45:'Foggy',48:'Freezing Fog',
+    51:'Light Drizzle',53:'Drizzle',55:'Heavy Drizzle',
+    61:'Light Rain',63:'Rain',65:'Heavy Rain',
+    71:'Light Snow',73:'Snow',75:'Heavy Snow',77:'Snow Grains',
+    80:'Showers',81:'Heavy Showers',82:'Violent Showers',
+    85:'Snow Showers',86:'Heavy Snow Showers',
+    95:'Thunderstorm',96:'Hail Storm',99:'Heavy Hail Storm'
+  };
+  const WMO_ICONS = {
+    0:'☀️',1:'🌤',2:'⛅',3:'☁️',
+    45:'🌫',48:'🌫',
+    51:'🌦',53:'🌦',55:'🌧',
+    61:'🌦',63:'🌧',65:'🌧',
+    71:'🌨',73:'❄️',75:'❄️',77:'🌨',
+    80:'🌧',81:'🌧',82:'⛈',
+    85:'🌨',86:'❄️',
+    95:'⛈',96:'⛈',99:'⛈'
+  };
+
+  let weatherConfig = {};
+  try { weatherConfig = JSON.parse(localStorage.getItem('sp_weather') || '{}'); } catch(e) {}
+
+  const weatherWidget = document.getElementById('weather-widget');
+
+  function applyWeatherSettings() {
+    if (weatherConfig.hidden) { weatherWidget.classList.add('hidden'); return; }
+    weatherWidget.classList.remove('hidden');
+    if (weatherConfig.lat !== undefined) fetchWeather(weatherConfig.lat, weatherConfig.lon, weatherConfig.city);
+    else if (weatherConfig.autoLoc) getAutoLocation();
+  }
+
+  async function fetchWeather(lat, lon, cityName) {
+    const unit = weatherConfig.fahrenheit ? 'fahrenheit' : 'celsius';
+    const sym = weatherConfig.fahrenheit ? '°F' : '°C';
+    try {
+      const r = await fetch(
+        'https://api.open-meteo.com/v1/forecast?latitude=' + lat +
+        '&longitude=' + lon + '&current=temperature_2m,weathercode&temperature_unit=' + unit
+      );
+      const d = await r.json();
+      const cur = d.current;
+      const code = cur.weathercode;
+      document.getElementById('weather-icon').textContent = WMO_ICONS[code] || '🌡';
+      document.getElementById('weather-temp').textContent = Math.round(cur.temperature_2m) + sym;
+      document.getElementById('weather-desc').textContent = WMO_CODES[code] || 'Bilinmiyor';
+      document.getElementById('weather-city').textContent = cityName || '';
+    } catch(e) {
+      document.getElementById('weather-desc').textContent = 'Hata';
+    }
+  }
+
+  async function reverseGeocode(lat, lon) {
+    try {
+      const r = await fetch(
+        'https://nominatim.openstreetmap.org/reverse?lat=' + lat + '&lon=' + lon +
+        '&format=json&accept-language=' + (currentLang || 'tr')
+      );
+      const d = await r.json();
+      return d.address.city || d.address.town || d.address.village || d.address.county || d.display_name.split(',')[0];
+    } catch(e) { return null; }
+  }
+
+  function getAutoLocation() {
+    navigator.geolocation.getCurrentPosition(async pos => {
+      const { latitude: lat, longitude: lon } = pos.coords;
+      weatherConfig.lat = lat; weatherConfig.lon = lon;
+      const cityName = await reverseGeocode(lat, lon) || 'Your location';
+      weatherConfig.city = cityName;
+      saveWeatherConfig();
+      weatherCurrentLoc.textContent = 'Mevcut: ' + cityName;
+      fetchWeather(lat, lon, cityName);
+    }, () => {
+      document.getElementById('weather-desc').textContent = (typeof L !== 'undefined' ? L : LANGS.tr).weather_no_loc || 'Location unavailable';
+    });
+  }
+
+  function saveWeatherConfig() {
+    localStorage.setItem('sp_weather', JSON.stringify(weatherConfig));
+  }
+
+  // Weather settings UI
+  const autoLocCheck = document.getElementById('weather-auto-loc');
+  const unitFCheck = document.getElementById('weather-unit-f');
+  const hideCheck = document.getElementById('weather-hide');
+  const weatherCityInput = document.getElementById('weather-city-input');
+  const weatherResults = document.getElementById('weather-city-results');
+  const weatherCurrentLoc = document.getElementById('weather-current-loc');
+
+  function syncWeatherUI() {
+    autoLocCheck.checked = !!weatherConfig.autoLoc;
+    unitFCheck.checked = !!weatherConfig.fahrenheit;
+    hideCheck.checked = !!weatherConfig.hidden;
+    if (weatherConfig.city) {
+      weatherCurrentLoc.textContent = 'Mevcut: ' + weatherConfig.city;
+    }
+  }
+  syncWeatherUI();
+
+  document.getElementById('weather-search-btn').addEventListener('click', async () => {
+    const q = weatherCityInput.value.trim();
+    if (!q) return;
+    weatherResults.innerHTML = '<div style="font-size:12px;color:var(--text-dim);">Searching…</div>';
+    try {
+      const r = await fetch('https://geocoding-api.open-meteo.com/v1/search?name=' + encodeURIComponent(q) + '&count=5&language=tr');
+      const d = await r.json();
+      const results = d.results || [];
+      if (!results.length) { weatherResults.innerHTML = '<div style="font-size:12px;color:var(--text-dim);">No results found</div>'; return; }
+      weatherResults.innerHTML = results.map((loc, i) =>
+        '<button data-i="' + i + '" style="width:100%;text-align:left;background:rgba(255,255,255,0.06);border:1px solid var(--glass-border);border-radius:8px;color:var(--text);font-family:inherit;font-size:12px;padding:8px 12px;cursor:pointer;transition:background 0.15s;" onmouseover="this.style.background=\'rgba(255,255,255,0.12)\'" onmouseout="this.style.background=\'rgba(255,255,255,0.06)\'">' +
+          loc.name + (loc.admin1 ? ', ' + loc.admin1 : '') + ', ' + loc.country_code +
+        '</button>'
+      ).join('');
+      weatherResults.querySelectorAll('button').forEach((btn, i) => {
+        btn.addEventListener('click', () => {
+          const loc = results[i];
+          weatherConfig.lat = loc.latitude;
+          weatherConfig.lon = loc.longitude;
+          weatherConfig.city = loc.name + (loc.admin1 ? ', ' + loc.admin1 : '');
+          weatherConfig.autoLoc = false;
+          autoLocCheck.checked = false;
+          saveWeatherConfig();
+          weatherCurrentLoc.textContent = 'Mevcut: ' + weatherConfig.city;
+          weatherResults.innerHTML = '';
+          weatherCityInput.value = '';
+          fetchWeather(weatherConfig.lat, weatherConfig.lon, weatherConfig.city);
+        });
+      });
+    } catch(e) { weatherResults.innerHTML = '<div style="font-size:12px;color:#ff6b6b;">Search error</div>'; }
+  });
+  weatherCityInput.addEventListener('keydown', e => { if (e.key === 'Enter') document.getElementById('weather-search-btn').click(); });
+
+  autoLocCheck.addEventListener('change', () => {
+    weatherConfig.autoLoc = autoLocCheck.checked;
+    saveWeatherConfig();
+    if (weatherConfig.autoLoc) getAutoLocation();
+  });
+  unitFCheck.addEventListener('change', () => {
+    weatherConfig.fahrenheit = unitFCheck.checked;
+    saveWeatherConfig();
+    if (weatherConfig.lat !== undefined) fetchWeather(weatherConfig.lat, weatherConfig.lon, weatherConfig.city);
+  });
+  hideCheck.addEventListener('change', () => {
+    weatherConfig.hidden = hideCheck.checked;
+    saveWeatherConfig();
+    applyWeatherSettings();
+  });
+
+  applyWeatherSettings();
+
+  // Apply language last (after all DOM/functions ready)
+  applyLang(currentLang);
+
+
+
+
+</script>
+</body>
+</html>
