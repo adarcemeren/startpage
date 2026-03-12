@@ -271,8 +271,3 @@ Click ⚙️ in the bottom-right corner to open the settings panel.
 | Google Tasks | OAuth 2.0 implicit flow |
 
 ---
-
-## 📄 License
-
-MIT
-# startpage
